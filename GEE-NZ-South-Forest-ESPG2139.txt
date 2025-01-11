@@ -1,0 +1,44 @@
+
+# This is the javascript used to get the Forest data from
+# MODIS Land Cover data Year 2020(MODIS/006/MCD12Q1/2020_01_01
+# Reproject the DEM to comply with CRS EPSG:2193 
+# Created SouthIsland_ForestCover_EPSG2193 for Forest cover
+
+// Define the South Island boundary using a geometry (bounding box around South Island)
+var southIsland = ee.Geometry.Polygon([
+  [[166.0, -47.3], [166.0, -40.2], [174.5, -40.2], [174.5, -47.3], [167.0, -47.3]]
+]);
+
+// Load MODIS Land Cover data (Year 2020, for example)
+var landcover = ee.Image('MODIS/006/MCD12Q1/2020_01_01');
+
+// Select the 'Land_Cover_Type_1' band which classifies the land cover
+var forestCover = landcover.select('LC_Type1');
+
+// Clip the land cover data to the South Island boundary
+var forest_south_island = forestCover.clip(southIsland);
+
+// Reproject the forest cover data to EPSG:2193 (New Zealand Transverse Mercator)
+var forest_reprojected = forest_south_island.reproject({
+  crs: 'EPSG:2193',
+  scale: 80  // MODIS resolution is 500 meters
+});
+
+// Visualize the forest cover data
+var forestPalette = ['#006400', '#228B22', '#32CD32'];  // Valid CSS hex color codes
+Map.addLayer(forest_reprojected, {min: 1, max: 5, palette: forestPalette}, 'Forest Cover EPSG:2193');
+
+// Set the map view over South Island, New Zealand
+Map.setCenter(169.5, -45.0, 6);  // Adjust the center and zoom level
+
+// Export the reprojected forest cover as a GeoTIFF with EPSG:2193
+Export.image.toDrive({
+  image: forest_reprojected,
+  description: 'SouthIsland_ForestCover_EPSG2193',
+  folder: 'GEE_exports',
+  scale: 30,  // MODIS resolution is 30 meters
+  region: southIsland,
+  crs: 'EPSG:2193',
+  fileFormat: 'GeoTIFF',
+  maxPixels: 1e9
+});

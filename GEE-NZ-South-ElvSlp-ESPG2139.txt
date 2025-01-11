@@ -1,0 +1,60 @@
+
+# This is the javascript used to get the Elevation & Slope data from
+# SRTM Digital Elevation Model (DEM)(USGS/SRTMGL1_003) data 
+# Reproject the DEM to comply with CRS EPSG:2193 
+# Created SouthIsland_Elevation_EPSG2193.tif for Elevation and SouthIsland_Slope_EPSG2193.tif 
+for Slope
+
+// Define the South Island boundary using a geometry (bounding box around South Island)
+var southIsland = ee.Geometry.Polygon([
+  [[166.0, -47.3], [166.0, -40.2], [174.5, -40.2], [174.5, -47.3], [166.0, -47.3]]
+]);
+
+// Load SRTM Digital Elevation Model (DEM) data
+var srtm = ee.Image('USGS/SRTMGL1_003');
+
+// Clip the DEM to the South Island boundary
+var dem_south_island = srtm.clip(southIsland);
+
+// Reproject the DEM to EPSG:2193 (New Zealand Transverse Mercator)
+var dem_reprojected = dem_south_island.reproject({
+  crs: 'EPSG:2193',
+  scale: 80  // Maintain the same resolution
+});
+
+// Visualize the reprojected elevation data
+Map.addLayer(dem_reprojected, {min: 0, max: 3000, palette: ['blue', 'green', 'brown', 'white']}, 'Elevation (EPSG:2193)');
+
+// Calculate slope from the reprojected DEM
+var slope = ee.Terrain.slope(dem_reprojected);
+
+// Visualize the reprojected slope data
+Map.addLayer(slope, {min: 0, max: 60, palette: ['white', 'yellow', 'orange', 'red']}, 'Slope (EPSG:2193)');
+
+// Set the map view over South Island, New Zealand
+Map.setCenter(169.5, -45.0, 6);  // Adjust the center and zoom level
+
+// Export the reprojected elevation DEM as a GeoTIFF in EPSG:2193
+Export.image.toDrive({
+  image: dem_reprojected,
+  description: 'SouthIsland_Elevation_EPSG2193',
+  folder: 'GEE_exports',
+  scale: 30,  // SRTM resolution (30 meters)
+  region: southIsland,
+  crs: 'EPSG:2193',
+  fileFormat: 'GeoTIFF',
+  maxPixels: 1e9
+});
+
+// Export the reprojected slope data as a GeoTIFF in EPSG:2193
+Export.image.toDrive({
+  image: slope,
+  description: 'SouthIsland_Slope_EPSG2193',
+  folder: 'GEE_exports',
+  scale: 30,  // Keep the same scale as DEM
+  region: southIsland,
+  crs: 'EPSG:2193',
+  fileFormat: 'GeoTIFF',
+  maxPixels: 1e9
+});
+
